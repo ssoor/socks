@@ -24,12 +24,17 @@ go get github.com/eahydra/socks/cmd/socksd
     },
     "rules": [
       {
+        "name": "remote_proxy",
+        "proxy": "8.8.8.8:2333",
+        "local_rule_file": "Appreciation.txt"
+      },
+      {
         "name": "local_proxy",
         "proxy": "127.0.0.1:2333",
         "socks4": "127.0.0.1:2334",
         "socks5": "127.0.0.1:2335",
         "local_rule_file": "Hijacker.txt",
-        "remote_rule_file": "httpss://raw.githubusercontent.com/Leask/BRICKS/master/gfw.bricks"
+        "remote_rule_file": "https://raw.githubusercontent.com/Leask/BRICKS/master/gfw.bricks"
       }
     ]
   },

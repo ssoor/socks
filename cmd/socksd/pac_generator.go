@@ -10,7 +10,7 @@ import (
 var pacTemplate = `
 var hasOwnProperty = Object.hasOwnProperty;
 {{range .Rules}}
-var proxy_{{.Name}} = "{{if .Proxy}}PROXY {{.Proxy}};{{end}}{{if .SOCKS5}}SOCKS5 {{.SOCKS5}};{{end}}{{if .SOCKS4}}SOCKS4 {{.SOCKS4}};{{end}}";
+var proxy_{{.Name}} = "{{if .Proxy}}PROXY {{.Proxy}};{{end}}{{if .SOCKS5}}SOCKS5 {{.SOCKS5}};{{end}}{{if .SOCKS4}}SOCKS4 {{.SOCKS4}};{{end}}DIRECT;";
 
 var domains_{{.Name}} = {
   {{.LocalRules}}

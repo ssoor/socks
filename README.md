@@ -7,7 +7,7 @@ The [cmd/socksd](https://github.com/eahydra/socks/blob/master/cmd/socksd) build 
 # Install
 Assume you have go installed, you can install from source.
 ```
-go get github.com/eahydra/socks
+go get github.com/ssoor/socks
 ```
 
-If you want to install [cmd/socksd](https://github.com/eahydra/socks/blob/master/cmd/socksd), please read the [README.md](https://github.com/eahydra/socks/blob/master/cmd/socksd/README.md)
+If you want to install [cmd/socksd](https://github.com/ssoor/socks/blob/master/cmd/socksd), please read the [README.md](https://github.com/ssoor/socks/blob/master/cmd/socksd/README.md)
