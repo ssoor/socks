@@ -21,9 +21,11 @@ func NewHTTPProxy(forward Dialer) *HTTPProxy {
 	return &HTTPProxy{
 		ReverseProxy: &httputil.ReverseProxy{
 			Director: director,
-			Transport: &http.Transport{
-				Dial: func(network, addr string) (net.Conn, error) {
-					return forward.Dial(network, addr)
+			Transport: &HTTPTransport{
+				Transport: http.Transport{
+					Dial: func(network, addr string) (net.Conn, error) {
+						return forward.Dial(network, addr)
+					},
 				},
 			},
 		},
@@ -36,12 +38,13 @@ func director(request *http.Request) {
 	if err != nil {
 		return
 	}
+
 	request.RequestURI = u.RequestURI()
-	v := request.Header.Get("Proxy-Connection")
-	if v != "" {
-		request.Header.Del("Proxy-Connection")
+	valueConnection := request.Header.Get("Proxy-Connection")
+	if valueConnection != "" {
 		request.Header.Del("Connection")
-		request.Header.Add("Connection", v)
+		request.Header.Del("Proxy-Connection")
+		request.Header.Add("Connection", valueConnection)
 	}
 }
 
