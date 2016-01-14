@@ -2,9 +2,9 @@ package socks
 
 import (
 	"fmt"
+	"github.com/ssoor/socks/compiler"
 	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
 	"strings"
 )
 
@@ -31,20 +31,32 @@ func createRedirectResponse(url string, req *http.Request) (resp *http.Response)
 	return
 }
 
+var rules compiler.SCompiler
+
+func init() {
+
+	rules.Add("mail.yeah.net", "s@^(http[s]?)://[^/]*[/]*/\\?(?:kb02464p|751)@$1://1.sogoulp.com/index5883_1.html@i")
+
+}
+
 func (t *HTTPTransport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 
-	if strings.EqualFold(strings.ToLower(req.URL.String()), "http://0.baidu.com/") {
+	srcUrl := req.URL.String()
 
-		resp = createRedirectResponse("http://www.baidu.com", req)
+	if dstUrl, err := rules.Replace(req.Host, srcUrl); err == nil {
 
-		response, _ := httputil.DumpResponse(resp, true)
+		fmt.Printf("%s(%s) == %s\n", req.Host, srcUrl, dstUrl)
 
-		fmt.Println(string(response))
-	} else {
-		resp, err = t.Transport.RoundTrip(req)
-		if err != nil {
-			return
-		}
+		resp = createRedirectResponse(dstUrl, req)
+
+		return resp, nil
 	}
+
+	resp, err = t.Transport.RoundTrip(req)
+
+	if err != nil {
+		return
+	}
+
 	return
 }
