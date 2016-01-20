@@ -20,14 +20,8 @@ type HTTPProxy struct {
 func NewHTTPProxy(forward Dialer) *HTTPProxy {
 	return &HTTPProxy{
 		ReverseProxy: &httputil.ReverseProxy{
-			Director: director,
-			Transport: &HTTPTransport{
-				Transport: http.Transport{
-					Dial: func(network, addr string) (net.Conn, error) {
-						return forward.Dial(network, addr)
-					},
-				},
-			},
+			Director:  director,
+			Transport: NewHTTPTransport(forward),
 		},
 		forward: forward,
 	}

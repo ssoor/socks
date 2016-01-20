@@ -56,6 +56,7 @@ type SCompiler struct {
 }
 
 func (this *SCompiler) Add(host string, rule string) error {
+	host = strings.ToLower(host)
 
 	smatch := SMatch{}
 
@@ -69,12 +70,14 @@ func (this *SCompiler) Add(host string, rule string) error {
 		this.matchs = make(map[string][]SMatch)
 	}
 
-	this.matchs[host] = append(this.matchs[host], smatch)
+	this.matchs[host] = append(this.matchs[strings.ToLower(host)], smatch)
 
 	return nil
 }
 
 func (this *SCompiler) Replace(host string, src string) (dst string, err error) {
+	host = strings.ToLower(host)
+
 	rules := this.matchs[host]
 
 	for _, match := range rules {
