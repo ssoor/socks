@@ -12,8 +12,13 @@ import (
 )
 
 func main() {
+	var isEncode bool
 	var configFile string
-	flag.StringVar(&configFile, "c", "socks.json", "config file path")
+
+	flag.BoolVar(&isEncode, "encode", true, "is start httpproxy encode to packets")
+
+	flag.StringVar(&configFile, "config", "socksd.json", "socksd start config info file path")
+
 	flag.Parse()
 
 	conf, err := LoadConfig(configFile)
@@ -25,7 +30,13 @@ func main() {
 
 	for _, c := range conf.Proxies {
 		router := BuildUpstreamRouter(c)
-		/*runHTTPProxyServer(c, router)*/ runHTTPLPProxyServer(c, router)
+
+		if isEncode {
+			runHTTPEncodeProxyServer(c, router)
+		} else {
+			runHTTPProxyServer(c, router)
+		}
+
 		runSOCKS4Server(c, router)
 		runSOCKS5Server(c, router)
 	}
@@ -92,7 +103,7 @@ func runHTTPProxyServer(conf Proxy, router socks.Dialer) {
 	}
 }
 
-func runHTTPLPProxyServer(conf Proxy, router socks.Dialer) {
+func runHTTPEncodeProxyServer(conf Proxy, router socks.Dialer) {
 	if conf.HTTP != "" {
 		listener, err := net.Listen("tcp", conf.HTTP)
 		if err != nil {
@@ -100,7 +111,7 @@ func runHTTPLPProxyServer(conf Proxy, router socks.Dialer) {
 			return
 		}
 
-		listener = socks.NewHTTPLPListener(listener)
+		listener = socks.NewHTTPEncodeListener(listener)
 
 		go func() {
 			defer listener.Close()

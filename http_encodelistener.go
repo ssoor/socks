@@ -9,7 +9,7 @@ import (
 )
 
 // NewHTTPLPProxy constructs one HTTPLPProxy
-func NewHTTPLPListener(l net.Listener) *LPListener {
+func NewHTTPEncodeListener(l net.Listener) *LPListener {
 	return &LPListener{listener: l}
 }
 
