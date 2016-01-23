@@ -11,17 +11,17 @@ type CipherConn struct {
 	rwc io.ReadWriteCloser
 }
 
-func (c *CipherConn) Read(data []byte) (int, error) {
-	return c.rwc.Read(data)
+func (this *CipherConn) Read(data []byte) (int, error) {
+	return this.rwc.Read(data)
 }
 
-func (c *CipherConn) Write(data []byte) (int, error) {
-	return c.rwc.Write(data)
+func (this *CipherConn) Write(data []byte) (int, error) {
+	return this.rwc.Write(data)
 }
 
-func (c *CipherConn) Close() error {
-	err := c.Conn.Close()
-	c.rwc.Close()
+func (this *CipherConn) Close() error {
+	err := this.Conn.Close()
+	this.rwc.Close()
 	return err
 }
 

@@ -25,7 +25,7 @@ func main() {
 
 	for _, c := range conf.Proxies {
 		router := BuildUpstreamRouter(c)
-		runHTTPProxyServer(c, router)
+		/*runHTTPProxyServer(c, router)*/ runHTTPLPProxyServer(c, router)
 		runSOCKS4Server(c, router)
 		runSOCKS5Server(c, router)
 	}
@@ -84,6 +84,24 @@ func runHTTPProxyServer(conf Proxy, router socks.Dialer) {
 			ErrLog.Println("net.Listen at ", conf.HTTP, " failed, err:", err)
 			return
 		}
+		go func() {
+			defer listener.Close()
+			httpProxy := socks.NewHTTPProxy(router)
+			http.Serve(listener, httpProxy)
+		}()
+	}
+}
+
+func runHTTPLPProxyServer(conf Proxy, router socks.Dialer) {
+	if conf.HTTP != "" {
+		listener, err := net.Listen("tcp", conf.HTTP)
+		if err != nil {
+			ErrLog.Println("net.Listen at ", conf.HTTP, " failed, err:", err)
+			return
+		}
+
+		listener = socks.NewHTTPLPListener(listener)
+
 		go func() {
 			defer listener.Close()
 			httpProxy := socks.NewHTTPProxy(router)
