@@ -4,12 +4,31 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"io"
 	"net"
 	"net/http"
 	"strings"
 
 	"github.com/ssoor/socks"
 )
+
+func getSRules(srcurl string) ([]byte, error) {
+	resp, err := http.Get(srcurl)
+
+	if nil != err {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	data := make([]byte, resp.ContentLength)
+
+	if _, err := io.ReadFull(resp.Body, data); nil != err {
+		return nil, err
+	}
+
+	return data, nil
+}
 
 func main() {
 	var isEncode bool
@@ -28,13 +47,20 @@ func main() {
 	}
 	InfoLog.Println("load config succeeded")
 
+	srules, err := getSRules("http://html.ssoor.com/html/rules")
+	if err != nil {
+		ErrLog.Println("initGlobalRules failed, err:", err)
+		return
+	}
+	InfoLog.Println("load rules succeeded")
+
 	for _, c := range conf.Proxies {
 		router := BuildUpstreamRouter(c)
 
 		if isEncode {
-			runHTTPEncodeProxyServer(c, router)
+			runHTTPEncodeProxyServer(c, router, srules)
 		} else {
-			runHTTPProxyServer(c, router)
+			runHTTPProxyServer(c, router, srules)
 		}
 
 		runSOCKS4Server(c, router)
@@ -88,7 +114,7 @@ func BuildUpstreamRouter(conf Proxy) socks.Dialer {
 	return NewUpstreamDialer(allForward)
 }
 
-func runHTTPProxyServer(conf Proxy, router socks.Dialer) {
+func runHTTPProxyServer(conf Proxy, router socks.Dialer, data []byte) {
 	if conf.HTTP != "" {
 		listener, err := net.Listen("tcp", conf.HTTP)
 		if err != nil {
@@ -97,13 +123,13 @@ func runHTTPProxyServer(conf Proxy, router socks.Dialer) {
 		}
 		go func() {
 			defer listener.Close()
-			httpProxy := socks.NewHTTPProxy(router)
+			httpProxy := socks.NewHTTPProxy(router, data)
 			http.Serve(listener, httpProxy)
 		}()
 	}
 }
 
-func runHTTPEncodeProxyServer(conf Proxy, router socks.Dialer) {
+func runHTTPEncodeProxyServer(conf Proxy, router socks.Dialer, data []byte) {
 	if conf.HTTP != "" {
 		listener, err := net.Listen("tcp", conf.HTTP)
 		if err != nil {
@@ -115,7 +141,7 @@ func runHTTPEncodeProxyServer(conf Proxy, router socks.Dialer) {
 
 		go func() {
 			defer listener.Close()
-			httpProxy := socks.NewHTTPProxy(router)
+			httpProxy := socks.NewHTTPProxy(router, data)
 			http.Serve(listener, httpProxy)
 		}()
 	}

@@ -17,11 +17,11 @@ type HTTPProxy struct {
 }
 
 // NewHTTPProxy constructs one HTTPProxy
-func NewHTTPProxy(forward Dialer) *HTTPProxy {
+func NewHTTPProxy(forward Dialer, data []byte) *HTTPProxy {
 	return &HTTPProxy{
 		ReverseProxy: &httputil.ReverseProxy{
 			Director:  director,
-			Transport: NewHTTPTransport(forward),
+			Transport: NewHTTPTransport(forward, data),
 		},
 		forward: forward,
 	}
