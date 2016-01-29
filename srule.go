@@ -21,13 +21,13 @@ const (
 type RuleTypeof int32
 
 type jSONCompiler struct {
-	Host  string   `json:"host"`
-	Match []string `json:"match"`
+	Type  RuleTypeof `json:"type"`
+	Host  string     `json:"host"`
+	Match []string   `json:"match"`
 }
 
 type jSONSRule struct {
-	Type RuleTypeof     `json:"type"`
-	Host []jSONCompiler `json:"compilers"`
+	Compiler []jSONCompiler `json:"compilers"`
 }
 
 type JSONRules struct {
@@ -70,43 +70,55 @@ func (this *SRules) ResolveJson(data []byte) (err error) {
 		return err
 	}
 
+	this.local = jsonRules.Local
+
+	if false == this.local {
+		this.tranpoort_local = this.tranpoort_remote
+	}
+
 	for i := 0; i < len(jsonRules.SRules); i++ {
-		for j := 0; j < len(jsonRules.SRules[i].Host); j++ {
-			this.Add(jsonRules.SRules[i].Type, jsonRules.SRules[i].Host[j].Host, jsonRules.SRules[i].Host[j].Match)
+		for j := 0; j < len(jsonRules.SRules[i].Compiler); j++ {
+			this.Add(jsonRules.SRules[i].Compiler[j])
 		}
 	}
 
 	return nil
 }
 
-func (this *SRules) ResolveRequest(req *http.Request) (*http.Transport, *http.Response) {
+func (this *SRules) ResolveRequest(req *http.Request) (tran *http.Transport, resp *http.Response) {
+	tran = this.tranpoort_local
+	resp = nil
 
 	if dsturl, err := this.replaceURL(this.Redirect, req.Host, req.URL.String()); err == nil {
-		if strings.EqualFold(req.URL.String(), dsturl.String()) {
-			return this.tranpoort_remote, nil
+		if false == strings.EqualFold(req.URL.String(), dsturl.String()) {
+			log.Println("redirect: ", req.URL, " to ", dsturl)
+
+			req.URL = dsturl
+
+			tran = this.tranpoort_remote
+			resp = this.createRedirectResponse(dsturl.String(), req)
+		} else {
+			log.Println("remote: ", req.URL)
+
+			tran = this.tranpoort_remote
+			resp = nil
 		}
-
-		log.Println("redirect: ", req.URL, " to ", dsturl)
-
-		req.URL = dsturl
-
-		return this.tranpoort_remote, this.createRedirectResponse(dsturl.String(), req)
 	}
 
 	if dsturl, err := this.replaceURL(this.Rewrite, req.Host, req.URL.String()); err == nil {
-
 		if strings.EqualFold(req.URL.Host, dsturl.Host) {
 			log.Println("rewrite: ", req.URL, " to ", dsturl)
 
 			req.URL = dsturl
 
-			return this.tranpoort_remote, nil
+			tran = this.tranpoort_remote
+			resp = nil
 		} else {
 			log.Println("rewrite err:", req.URL, " to ", dsturl)
 		}
 	}
 
-	return this.tranpoort_local, nil
+	return tran, resp
 }
 
 func (this *SRules) ResolveResponse(req *http.Request, resp *http.Response) *http.Response {
@@ -137,19 +149,19 @@ func (this *SRules) createRedirectResponse(url string, req *http.Request) (resp 
 	return
 }
 
-func (this *SRules) Add(typeof RuleTypeof, host string, rule []string) (err error) {
+func (this *SRules) Add(compiler jSONCompiler) (err error) {
 
-	switch typeof {
+	switch compiler.Type {
 	case Rewrite:
-		err = this.Rewrite.Add(host, rule)
+		err = this.Rewrite.Add(compiler.Host, compiler.Match)
 	case Redirect:
-		err = this.Redirect.Add(host, rule)
+		err = this.Redirect.Add(compiler.Host, compiler.Match)
 	default:
 		return errors.New("无法是别的规则类型")
 	}
 
-	for i := 0; i < len(rule); i++ {
-		log.Println(typeof, rule[i], err)
+	for i := 0; i < len(compiler.Match); i++ {
+		log.Println(compiler.Type, compiler.Match[i], err)
 	}
 
 	return err
