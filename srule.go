@@ -87,7 +87,6 @@ func (this *SRules) ResolveJson(data []byte) (err error) {
 
 func (this *SRules) ResolveRequest(req *http.Request) (tran *http.Transport, resp *http.Response) {
 	tran = this.tranpoort_local
-	resp = nil
 
 	if dsturl, err := this.replaceURL(this.Redirect, req.Host, req.URL.String()); err == nil {
 		if false == strings.EqualFold(req.URL.String(), dsturl.String()) {
@@ -95,13 +94,13 @@ func (this *SRules) ResolveRequest(req *http.Request) (tran *http.Transport, res
 
 			req.URL = dsturl
 
-			tran = this.tranpoort_remote
+			tran = nil
 			resp = this.createRedirectResponse(dsturl.String(), req)
 		} else {
 			log.Println("remote: ", req.URL)
 
-			tran = this.tranpoort_remote
 			resp = nil
+			tran = this.tranpoort_remote
 		}
 	}
 
@@ -111,8 +110,8 @@ func (this *SRules) ResolveRequest(req *http.Request) (tran *http.Transport, res
 
 			req.URL = dsturl
 
-			tran = this.tranpoort_remote
 			resp = nil
+			tran = this.tranpoort_remote
 		} else {
 			log.Println("rewrite err:", req.URL, " to ", dsturl)
 		}

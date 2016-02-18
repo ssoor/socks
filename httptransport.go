@@ -29,7 +29,7 @@ func NewHTTPTransport(forward Dialer, jsondata []byte) *HTTPTransport {
 	}
 
 	if err := transport.Rules.ResolveJson(jsondata); nil != err {
-		log.Println(err)
+		log.Printf("Resolve json failed, err: %s\n", err)
 	}
 
 	return transport
