@@ -1,6 +1,9 @@
 package socks
 
 import (
+	"bufio"
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -124,6 +127,33 @@ func (this *SRules) ResolveResponse(req *http.Request, resp *http.Response) *htt
 
 	if resp_type := resp.Header.Get("Content-Type"); strings.Contains(strings.ToLower(resp_type), "text/html") {
 		log.Printf("text/html: %s\n", resp.Request.URL.String())
+
+		if resp.ContentLength < 102400 {
+
+			oldBody := resp.Body
+			defer oldBody.Close()
+
+			newReader := bufio.NewReader(resp.Body)
+
+			if strings.EqualFold(resp.Header.Get("Content-Encoding"), "gzip") {
+
+				read, _ := gzip.NewReader(resp.Body)
+
+				newReader = bufio.NewReader(read)
+
+				resp.Header.Del("Content-Encoding")
+			}
+
+			var buf bytes.Buffer
+
+			buf.ReadFrom(newReader)
+
+			smatch, _ := compiler.NewSMatch("s@(^<!DOCTYPE HTML[\\s\\S]*>[\\s\\S]*<html>[\\s\\S]*<head[\\s\\]*>[\\s\\S]*)(</head>[\\s\\S]*<body[\\s\\S]*>[\\s\\S]*)(</body>[\\s\\S]*</html>[\\s\\S]*)$@$1<script language=\"javascript\">alert('test')</script>$2$3@i")
+
+			html, _ := smatch.Replace(buf.String())
+
+			resp.Body = ioutil.NopCloser(strings.NewReader(html))
+		}
 	}
 
 	return resp
