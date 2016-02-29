@@ -35,7 +35,21 @@ func (this *SCompiler) Add(host string, rule []string) error {
 func (this *SCompiler) Replace(host string, src string) (dst string, err error) {
 	host = strings.ToLower(host)
 
-	rules := this.matchs[host]
+	var rules []SMatch
+
+	for i := len(host); i > 0; i = strings.LastIndexByte(host[:i], '.') {
+		var exist bool
+
+		rules, exist = this.matchs[host[i:]]
+
+		if true == exist {
+			break
+		}
+	}
+
+	if 0 == len(rules) {
+		rules = this.matchs[host]
+	}
 
 	for _, match := range rules {
 		if dst, err := match.Replace(src); err == nil {

