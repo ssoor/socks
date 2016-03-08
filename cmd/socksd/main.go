@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"flag"
-	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -21,13 +20,11 @@ func getSRules(srcurl string) ([]byte, error) {
 
 	defer resp.Body.Close()
 
-	data := make([]byte, resp.ContentLength)
+	var bodyBuf bytes.Buffer
 
-	if _, err := io.ReadFull(resp.Body, data); nil != err {
-		return nil, err
-	}
+	bodyBuf.ReadFrom(resp.Body)
 
-	return data, nil
+	return bodyBuf.Bytes(), nil
 }
 
 func main() {
