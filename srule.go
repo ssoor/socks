@@ -108,9 +108,11 @@ func (this *SRules) ResolveRewriteHTML(req *http.Request, resp *http.Response) (
 		return nil
 	}
 
-	if resp.ContentLength <= 0 || resp.ContentLength > this.limits.MaxResponseContentLen {
+	if resp.ContentLength == 0 || resp.ContentLength > this.limits.MaxResponseContentLen {
 		return nil
 	}
+
+	log.Println(resp.Request.URL)
 
 	bodyReader := bufio.NewReader(resp.Body)
 
