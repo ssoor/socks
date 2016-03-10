@@ -8,10 +8,75 @@ import (
 	"net/http"
 	"strings"
 
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/base64"
+	"encoding/json"
+
 	"github.com/ssoor/socks"
 )
 
-func getSRules(srcurl string) ([]byte, error) {
+func Decrypt(base64Code []byte) (decode []byte, err error) {
+	type encodeStruct struct {
+		IV   string `json:"iv"`
+		Code string `json:"code"`
+	}
+
+	key := []byte("890161F37139989CFA9433BAF32BDAFB")
+	var jsonEninfo []byte
+
+	for i := 0; i < len(base64Code); i++ {
+		base64Code[i] = base64Code[i] - 0x90
+	}
+
+	if jsonEninfo, err = base64.StdEncoding.DecodeString(string(base64Code)); err != nil {
+		return nil, err
+	}
+
+	eninfo := encodeStruct{}
+
+	if err := json.Unmarshal(jsonEninfo, &eninfo); err != nil {
+		return nil, err
+	}
+
+	var iv, code []byte
+
+	iv, err = base64.StdEncoding.DecodeString(eninfo.IV)
+
+	if err != nil {
+		return nil, err
+	}
+
+	code, err = base64.StdEncoding.DecodeString(eninfo.Code)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var block cipher.Block
+
+	if block, err = aes.NewCipher(key); err != nil {
+		return nil, err
+	}
+
+	mode := cipher.NewCBCDecrypter(block, iv)
+
+	mode.CryptBlocks(code, code)
+
+	return code, nil
+}
+
+func GetValidByte(src []byte) []byte {
+	var str_buf []byte
+	for _, v := range src {
+		if v != 0 {
+			str_buf = append(str_buf, v)
+		}
+	}
+	return str_buf
+}
+
+func getSRules(srcurl string) (jsonRules []byte, err error) {
 	resp, err := http.Get(srcurl)
 
 	if nil != err {
@@ -24,7 +89,13 @@ func getSRules(srcurl string) ([]byte, error) {
 
 	bodyBuf.ReadFrom(resp.Body)
 
-	return bodyBuf.Bytes(), nil
+	jsonRules, err = Decrypt(bodyBuf.Bytes())
+
+	if err != nil {
+		return nil, err
+	}
+
+	return GetValidByte(jsonRules), nil
 }
 
 func main() {
