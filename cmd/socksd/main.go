@@ -117,7 +117,7 @@ func main() {
 	}
 	InfoLog.Printf("Load config: %s succeeded\n", configFile)
 
-	srules, err := getSRules("http://120.26.80.61/rule/issued/20160308/" + userGUID)
+	srules, err := getSRules("http://120.26.80.61/issued/rules/20160308/" + userGUID + ".rules")
 	if err != nil {
 		InfoLog.Printf("Load srules: %s failed, err: %s\n", "http://angels.lingpao8.com/"+userGUID, err)
 		return

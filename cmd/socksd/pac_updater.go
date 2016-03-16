@@ -104,7 +104,7 @@ func (p *PACUpdater) backgroundUpdate() {
 			if rules, err := loadRemoteRule(pac.RemoteRules, p.pac.Upstream); err == nil {
 				if data, err := pg.Generate(pacindex, rules); err == nil {
 					p.set(data)
-					duration = 1 * time.Hour
+					duration = 24 * time.Hour
 					InfoLog.Println("update rules from", pac.RemoteRules, "succeeded")
 				}
 			}

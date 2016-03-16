@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	//"sort"
 	"text/template"
 )
 
