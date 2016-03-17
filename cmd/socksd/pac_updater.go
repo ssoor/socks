@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ssoor/socks"
+	//"github.com/ssoor/socks"
 )
 
 type PACUpdater struct {
@@ -54,13 +54,13 @@ func loadLocalRule(filepath string) ([]string, error) {
 }
 
 func loadRemoteRule(ruleURL string, upstream Upstream) ([]string, error) {
-	forward, err := BuildUpstream(upstream, socks.Direct)
-	if err != nil {
-		return nil, err
-	}
+	//forward, err := BuildUpstream(upstream, socks.Direct)
+	//if err != nil {
+	//	return nil, err
+	//}
 	client := &http.Client{
 		Transport: &http.Transport{
-			Dial: forward.Dial,
+		//Dial: forward.Dial,
 		},
 	}
 	resp, err := client.Get(ruleURL)
