@@ -193,7 +193,7 @@ func runHTTPProxyServer(conf Proxy, router socks.Dialer, data []byte) {
 		}
 		go func() {
 			defer listener.Close()
-			httpProxy := socks.NewHTTPProxy(router, data)
+			httpProxy := socks.NewHTTPProxy(router, socks.NewHTTPTransport(router,data))
 			http.Serve(listener, httpProxy)
 		}()
 	}
@@ -211,7 +211,7 @@ func runHTTPEncodeProxyServer(conf Proxy, router socks.Dialer, data []byte) {
 
 		go func() {
 			defer listener.Close()
-			httpProxy := socks.NewHTTPProxy(router, data)
+			httpProxy := socks.NewHTTPProxy(router, socks.NewHTTPTransport(router,data))
 			http.Serve(listener, httpProxy)
 		}()
 	}
