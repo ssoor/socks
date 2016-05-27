@@ -82,7 +82,9 @@ func (h *HTTPProxy) ServeHTTPTunnel(response http.ResponseWriter, request *http.
 
 // ServeHTTP implements HTTP Handler
 func (h *HTTPProxy) ServeHTTP(response http.ResponseWriter, request *http.Request) {
-	request.URL, _ = url.ParseRequestURI("http://" + request.Host + request.RequestURI)
+	request.URL.Scheme = "http"
+	request.URL.Host = request.Host
+	
 	if request.Method == "CONNECT" {
 		h.ServeHTTPTunnel(response, request)
 	} else {
