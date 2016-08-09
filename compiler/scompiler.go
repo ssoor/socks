@@ -32,30 +32,36 @@ func (this *SCompiler) Add(host string, rule []string) error {
 	return nil
 }
 
-func (this *SCompiler) Replace(host string, src string) (dst string, err error) {
+func (sc *SCompiler) matchReplaces(rules []SMatch, src string) (dst string, err error) {
+	for _, match := range rules {
+		if dst, err := match.Replace(src); err == nil {
+			return dst, nil
+		}
+	}
+
+	return src, errors.New("regular expression does not match")
+}
+
+func (sc *SCompiler) Replace(host string, src string) (dst string, err error) {
 	host = strings.ToLower(host)
 
 	var exist bool
 	var rules []SMatch
 
-	if rules, exist = this.matchs["."]; false == exist {
-		for i := len(host); i > 0; i = strings.LastIndexByte(host[:i], '.') {
+	rules = sc.matchs[host]
+	if dst, err = sc.matchReplaces(rules, src); nil == err {
+		return
+	}
 
-			rules, exist = this.matchs[host[i:]]
-
-			if true == exist {
-				break
-			}
+	host = "." + host + "."
+	for i := 0; -1 != i; i = strings.IndexRune(host, '.') {
+		host = host[i+1:]
+		if rules, exist = sc.matchs["."+host]; false == exist {
+			continue
 		}
-	}
 
-	if 0 == len(rules) {
-		rules = this.matchs[host]
-	}
-
-	for _, match := range rules {
-		if dst, err := match.Replace(src); err == nil {
-			return dst, nil
+		if dst, err = sc.matchReplaces(rules, src); nil == err {
+			return
 		}
 	}
 
