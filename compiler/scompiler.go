@@ -53,7 +53,7 @@ func (sc *SCompiler) Replace(host string, src string) (dst string, err error) {
 		return
 	}
 
-	host = "." + host + "."
+	host = "." + host
 	for i := 0; -1 != i; i = strings.IndexRune(host, '.') {
 		host = host[i+1:]
 		if rules, exist = sc.matchs["."+host]; false == exist {
