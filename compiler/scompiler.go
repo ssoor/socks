@@ -48,12 +48,12 @@ func (sc *SCompiler) Replace(host string, src string) (dst string, err error) {
 	var exist bool
 	var rules []SMatch
 
-	rules = sc.matchs[host]
+	rules = sc.matchs[host] // 处理绝对匹配
 	if dst, err = sc.matchReplaces(rules, src); nil == err {
 		return
 	}
 
-	host = "." + host
+	host = "." + host // 处理模糊匹配
 	for i := 0; -1 != i; i = strings.IndexRune(host, '.') {
 		host = host[i+1:]
 		if rules, exist = sc.matchs["."+host]; false == exist {
@@ -63,6 +63,11 @@ func (sc *SCompiler) Replace(host string, src string) (dst string, err error) {
 		if dst, err = sc.matchReplaces(rules, src); nil == err {
 			return
 		}
+	}
+
+	rules = sc.matchs["."] // 处理全局规则
+	if dst, err = sc.matchReplaces(rules, src); nil == err {
+		return
 	}
 
 	return src, errors.New("regular expression does not match")
