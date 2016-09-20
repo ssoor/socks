@@ -7,8 +7,8 @@ import (
 )
 
 type SMatch struct {
-	template string
-	regexp   *regexp.Regexp
+	template     string
+	contextRegex *regexp.Regexp
 }
 
 var (
@@ -31,7 +31,7 @@ func NewSMatch(rule string) (match SMatch, err error) {
 		return match, ErrUnrecognizedSMatch // errors.New("rule string incomplete or invalid: " + rule)
 	}
 
-	match.regexp, err = regexp.Compile("(?" + split[3] + ")" + split[1])
+	match.contextRegex, err = regexp.Compile("(?" + split[3] + ")" + split[1])
 
 	if err != nil {
 		return match, ErrUnrecognizedSMatch // err
@@ -42,14 +42,16 @@ func NewSMatch(rule string) (match SMatch, err error) {
 	return match, nil
 }
 
-func (this *SMatch) Replace(src string) (string, error) {
+func (s *SMatch) Replace(src string) (string, error) {
 	var dst []byte
 
-	submatch := this.regexp.FindStringSubmatchIndex(src)
+	return s.contextRegex.ReplaceAllString(src, s.template), nil
+
+	submatch := s.contextRegex.FindStringSubmatchIndex(src)
 
 	if len(submatch) == 0 {
 		return src, errors.New("regular expression does not match")
 	}
 
-	return string(this.regexp.ExpandString(dst, this.template, src, submatch)), nil
+	return string(s.contextRegex.ExpandString(dst, s.template, src, submatch)), nil
 }
