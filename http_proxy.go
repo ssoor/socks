@@ -12,18 +12,20 @@ import (
 // HTTPProxy is an HTTP Handler that serve CONNECT method and
 // route request to proxy server by Router.
 type HTTPProxy struct {
-	*httputil.ReverseProxy
+	scheme  string
 	forward Dialer
+	*httputil.ReverseProxy
 }
 
 // NewHTTPProxy constructs one HTTPProxy
-func NewHTTPProxy(forward Dialer, transport http.RoundTripper) *HTTPProxy {
+func NewHTTPProxy(scheme string, forward Dialer, transport http.RoundTripper) *HTTPProxy {
 	return &HTTPProxy{
+		scheme:  scheme,
+		forward: forward,
 		ReverseProxy: &httputil.ReverseProxy{
 			Director:  director,
 			Transport: transport,
 		},
-		forward: forward,
 	}
 }
 
@@ -82,7 +84,7 @@ func (h *HTTPProxy) ServeHTTPTunnel(response http.ResponseWriter, request *http.
 
 // ServeHTTP implements HTTP Handler
 func (h *HTTPProxy) ServeHTTP(response http.ResponseWriter, request *http.Request) {
-	request.URL.Scheme = "http"
+	request.URL.Scheme = h.scheme
 	request.URL.Host = request.Host
 
 	if request.Method == "CONNECT" {
