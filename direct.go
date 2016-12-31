@@ -1,6 +1,9 @@
 package socks
 
-import "net"
+import (
+	"net"
+	"time"
+)
 
 // A Dialer is a means to establish a connection.
 type Dialer interface {
@@ -15,4 +18,8 @@ var Direct = direct{}
 
 func (direct) Dial(network, address string) (net.Conn, error) {
 	return net.Dial(network, address)
+}
+
+func (direct) DialTimeout(network, address string, timeout time.Duration) (net.Conn, error) {
+	return net.DialTimeout(network, address, timeout)
 }
