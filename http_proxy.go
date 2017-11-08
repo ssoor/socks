@@ -1,6 +1,8 @@
 package socks
 
 import (
+	"bytes"
+	"strings"
 	"fmt"
 	"io"
 	"net"
@@ -72,7 +74,55 @@ func (h *HTTPProxy) ServeHTTPTunnel(response http.ResponseWriter, request *http.
 			return
 		}
 	}
+
 	fmt.Fprintf(conn, "HTTP/1.0 200 Connection established\r\n\r\n")
+
+	go func() {
+		defer conn.Close()
+		defer dest.Close()
+		io.Copy(dest, conn)
+	}()
+	io.Copy(conn, dest)
+}
+
+
+// ServeHTTPTunnel serve incoming request with CONNECT method, then route data to proxy server
+func (h *HTTPProxy) xInternalConnect(req *http.Request, response http.ResponseWriter) {
+	var conn net.Conn
+	if hj, ok := response.(http.Hijacker); ok {
+		var err error
+		if conn, _, err = hj.Hijack(); err != nil {
+			http.Error(response, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		http.Error(response, "Hijacker failed", http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	host := req.Host+":80"
+	if strings.EqualFold(req.URL.Scheme,"https") {
+		host = req.Host+":443"
+	}
+	
+	dest, err := h.forward.Dial("tcp", host)
+	if err != nil {
+		fmt.Fprintf(conn, "HTTP/1.0 500 NewRemoteSocks failed, err:%s\r\n\r\n", err)
+		return
+	}
+	defer dest.Close()
+
+	sendRequest, err :=  httputil.DumpRequestOut(req, true)
+	if err != nil {
+		fmt.Fprintf(conn, "HTTP/1.0 500 Dump Request failed, err:%s\r\n\r\n", err)
+		return
+	}
+	println(string(sendRequest))
+	if _, err = io.Copy(dest, bytes.NewReader(sendRequest)); err != nil {
+		fmt.Fprintf(conn, "%d %s", http.StatusBadGateway, err.Error())
+		return
+	}
 
 	go func() {
 		defer conn.Close()
@@ -86,6 +136,10 @@ func (h *HTTPProxy) ServeHTTPTunnel(response http.ResponseWriter, request *http.
 func (h *HTTPProxy) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 	request.URL.Scheme = h.scheme
 	request.URL.Host = request.Host
+	
+	if request.Method == "GET" && strings.EqualFold(request.Header.Get("Connection"), "Upgrade") && strings.EqualFold(request.Header.Get("Upgrade"), "websocket") {
+		h.xInternalConnect(request, response)
+	}
 
 	if request.Method == "CONNECT" {
 		h.ServeHTTPTunnel(response, request)
