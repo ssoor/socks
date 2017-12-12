@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/ssoor/socks/upstream"
 	"encoding/json"
 	"io/ioutil"
 )
@@ -34,7 +35,7 @@ type Proxy struct {
 	Crypto          string     `json:"crypto"`
 	Password        string     `json:"password"`
 	DNSCacheTimeout int        `json:"dnsCacheTimeout"`
-	Upstreams       []Upstream `json:"upstreams"`
+	Upstreams       []upstream.Upstream `json:"upstreams"`
 }
 
 type Config struct {

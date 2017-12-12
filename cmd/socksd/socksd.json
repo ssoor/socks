@@ -1,0 +1,41 @@
+{
+    "pac": {
+        "address": "127.0.0.1:2016",
+        "upstream": {
+            "type": "shadowsocks",
+            "crypto": "aes-128-cfb",
+            "password": "111222333",
+            "address": "127.0.0.1:1080"
+        },
+        "rules": [
+            {
+                "name": "remote_proxy",
+                "proxy": "8.8.8.8:2333",
+                "local_rule_file": "Appreciation.txt"
+            },
+            {
+                "name": "local_proxy",
+                "proxy": "127.0.0.1:2333",
+                "socks4": "127.0.0.1:2334",
+                "socks5": "127.0.0.1:2335",
+                "local_rule_file": "Hijacker.txt",
+                "remote_rule_file": "https://raw.githubusercontent.com/Leask/BRICKS/master/gfw.bricks"
+            }
+        ]
+    },
+    "proxies": [
+        {
+            "http": ":2333",
+            "socks4": ":2334",
+            "socks5": ":2335",
+            "upstreams": [
+                {
+                    "type": "shadowsocks",
+                    "crypto": "aes-128-cfb",
+                    "password": "111222333",
+                    "address": "127.0.0.1:1080"
+                }
+            ]
+        }
+    ]
+}
